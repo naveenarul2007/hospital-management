@@ -92,6 +92,16 @@
 - **Frontend**: Thymeleaf 3, Bootstrap 5.3, FontAwesome 6, Chart.js, Google Fonts (Inter)
 - **Build Tool**: Apache Maven
 
+## 🌐 Live Online Hosting Links
+
+This project supports both **Instant Static Web Hosting** (GitHub Pages / Vercel) and **Full Java Spring Boot Backend Hosting** (Render / Railway / Docker).
+
+### 🚀 Instant Web Demo (GitHub Pages & Vercel)
+- **GitHub Pages**: `https://naveenarul2007.github.io/hospital-management/`
+- **Vercel**: `https://hospitalmanagementsystem-snowy.vercel.app`
+
+*(Powered by `index.html` at repository root with complete interactive features and local storage persistence)*
+
 ---
 
 ## 💻 How to Run Locally

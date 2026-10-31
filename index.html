@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCare - Hospital Management System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- App CSS -->
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        /* Standalone App Specific Tweaks */
+        .section-view { display: none; }
+        .section-view.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .cursor-pointer { cursor: pointer; }
+        .badge-status { padding: 6px 12px; font-weight: 600; font-size: 0.78rem; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-confirmed { background: #e0f2fe; color: #0369a1; }
+        .badge-pending { background: #fef3c7; color: #b45309; }
+        .badge-completed { background: #dcfce7; color: #15803d; }
+        .badge-cancelled { background: #fee2e2; color: #b91c1c; }
+        .badge-paid { background: #dcfce7; color: #15803d; }
+        .badge-partial { background: #fef3c7; color: #b45309; }
+        .badge-unpaid { background: #fee2e2; color: #b91c1c; }
+        .badge-in_stock { background: #dcfce7; color: #15803d; }
+        .badge-low_stock { background: #fef3c7; color: #b45309; }
+        .badge-out_of_stock { background: #fee2e2; color: #b91c1c; }
+        .action-btn-group .btn { padding: 4px 8px; font-size: 13px; }
+        .search-box-custom { max-width: 300px; }
+        .table > :not(caption) > * > * { vertical-align: middle; }
+        .auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 37, 64, 0.95); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .auth-card {
+            background: #fff; border-radius: 16px; padding: 36px;
+            width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login Modal Overlay (Hidden when logged in) -->
+<div id="authOverlay" class="auth-overlay" style="display: none;">
+    <div class="auth-card">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3" style="width: 58px; height: 58px; font-size: 26px;">
+                <i class="fas fa-hospital-alt"></i>
+            </div>
+            <h3 class="fw-bold mb-1">MediCare HMS</h3>
+            <p class="text-muted small">Sign in to your hospital administration portal</p>
+        </div>
+        <form onsubmit="handleAuthSubmit(event)">
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-user text-muted"></i></span>
+                    <input type="text" id="loginUsername" class="form-control" value="admin" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock text-muted"></i></span>
+                    <input type="password" id="loginPassword" class="form-control" value="admin123" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </button>
+        </form>
+        <div class="pt-3 border-top">
+            <p class="text-muted text-center small mb-2 fw-semibold">1-Click Quick Demo Sign In:</p>
+            <div class="d-grid gap-2">
+                <button onclick="quickLogin('admin')" class="btn btn-sm btn-outline-primary text-start">
+                    <i class="fas fa-user-shield me-2"></i><strong>Admin</strong> (Full Control)
+                </button>
+                <button onclick="quickLogin('doctor')" class="btn btn-sm btn-outline-success text-start">
+                    <i class="fas fa-user-md me-2"></i><strong>Doctor</strong> (Patients & EHR)
+                </button>
+                <button onclick="quickLogin('receptionist')" class="btn btn-sm btn-outline-info text-start">
+                    <i class="fas fa-concierge-bell me-2"></i><strong>Receptionist</strong> (Appointments & Billing)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fas fa-hospital-alt"></i></div>
+        <div class="brand-text">
+            <span class="brand-name">MediCare</span>
+            <span class="brand-sub">HMS</span>
+        </div>
+    </div>
+    <div class="sidebar-user">
+        <div class="user-avatar"><i class="fas fa-user-circle"></i></div>
+        <div class="user-info">
+            <div class="user-name" id="sidebarUserName">Administrator</div>
+            <div class="user-role" id="sidebarUserRole">ADMIN</div>
+        </div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-title">MAIN MENU</div>
+        <a href="#" class="nav-link active" onclick="showSection('dashboard', this)"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+        <a href="#" class="nav-link" onclick="showSection('patients', this)"><i class="fas fa-users"></i> <span>Patients</span></a>
+        <a href="#" class="nav-link" onclick="showSection('doctors', this)"><i class="fas fa-user-md"></i> <span>Doctors</span></a>
+        <a href="#" class="nav-link" onclick="showSection('appointments', this)"><i class="fas fa-calendar-check"></i> <span>Appointments</span></a>
+        <a href="#" class="nav-link" onclick="showSection('records', this)"><i class="fas fa-file-medical"></i> <span>Medical Records</span></a>
+        <div class="nav-section-title">SERVICES</div>
+        <a href="#" class="nav-link" onclick="showSection('pharmacy', this)"><i class="fas fa-pills"></i> <span>Pharmacy</span></a>
+        <a href="#" class="nav-link" onclick="showSection('laboratory', this)"><i class="fas fa-flask"></i> <span>Laboratory</span></a>
+        <a href="#" class="nav-link" onclick="showSection('billing', this)"><i class="fas fa-file-invoice-dollar"></i> <span>Billing</span></a>
+        <div class="nav-section-title">ADMINISTRATION</div>
+        <a href="#" class="nav-link" onclick="showSection('staff', this)"><i class="fas fa-id-badge"></i> <span>Staff</span></a>
+        <a href="#" class="nav-link" onclick="showSection('reports', this)"><i class="fas fa-chart-bar"></i> <span>Reports</span></a>
+        <a href="#" class="nav-link nav-logout text-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+    </nav>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content" id="mainContent">
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="page-title-area">
+                <h2 class="page-title" id="pageTitleHeading">Hospital Dashboard</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="#" onclick="showSection('dashboard')">Home</a></li>
+                        <li class="breadcrumb-item active" id="breadcrumbActive">Dashboard</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <!-- Notifications Dropdown -->
+            <div class="dropdown">
+                <button class="topbar-btn position-relative" data-bs-toggle="dropdown">
+                    <i class="fas fa-bell"></i>
+                    <span class="notif-badge" id="notifBadge">3</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-dropdown p-0 shadow" style="min-width: 320px;">
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">Notifications</h6>
+                        <a href="javascript:void(0)" onclick="clearNotifications()" class="small text-decoration-none">Clear all</a>
+                    </div>
+                    <div id="notifList" class="p-2" style="max-height: 280px; overflow-y: auto;">
+                        <div class="p-2 border-bottom small">
+                            <span class="badge bg-warning me-1">Pharmacy</span> Low stock on Amoxicillin 500mg
+                        </div>
+                        <div class="p-2 border-bottom small">
+                            <span class="badge bg-success me-1">Appointment</span> Dr. Rajesh Kumar confirmed APT-5001
+                        </div>
+                        <div class="p-2 small">
+                            <span class="badge bg-info me-1">Patient</span> Ananya Krishnan registered
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- User Dropdown -->
+            <div class="dropdown">
+                <button class="topbar-user-btn" data-bs-toggle="dropdown">
+                    <div class="user-avatar-sm"><i class="fas fa-user"></i></div>
+                    <span id="topbarUserName">admin</span>
+                    <i class="fas fa-chevron-down ms-1" style="font-size:10px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><h6 class="dropdown-header" id="userMenuRole">Logged in as Administrator</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Content Container -->
+    <div class="page-content p-4">
+
+        <!-- =================== DASHBOARD VIEW =================== -->
+        <div id="section-dashboard" class="section-view active">
+            <!-- Quick Stat Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-primary"><i class="fas fa-user-injured"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Patients</div>
+                            <div class="stat-value" id="statPatientsCount">5</div>
+                            <div class="stat-change text-success"><i class="fas fa-arrow-up"></i> +12% this month</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-success"><i class="fas fa-user-md"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Active Doctors</div>
+                            <div class="stat-value" id="statDoctorsCount">5</div>
+                            <div class="stat-change text-success"><i class="fas fa-check"></i> On-Duty Specialists</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-warning"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Appointments</div>
+                            <div class="stat-value" id="statAppointmentsCount">4</div>
+                            <div class="stat-change text-info"><i class="fas fa-clock"></i> Active consults</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-info"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Hospital Revenue</div>
+                            <div class="stat-value" id="statRevenue">$6,450</div>
+                            <div class="stat-change text-success"><i class="fas fa-wallet"></i> Recorded billing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Low Stock Banner -->
+            <div class="alert alert-warning d-flex align-items-center justify-content-between p-3 mb-4 rounded-3 shadow-sm" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1 fw-bold">Pharmacy Inventory Alert</h6>
+                        <p class="mb-0 small text-muted">Some medicines have reached below minimum threshold reorder level.</p>
+                    </div>
+                </div>
+                <button class="btn btn-warning btn-sm fw-semibold" onclick="showSection('pharmacy')">Manage Pharmacy</button>
+            </div>
+
+            <!-- Charts & Quick Actions -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-8">
+                    <div class="card card-modern h-100">
+                        <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                            <h5 class="card-title mb-0 fw-bold"><i class="fas fa-chart-area me-2 text-primary"></i>Department Patient Load</h5>
+                            <span class="badge bg-light text-dark">Live Statistics</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 280px;">
+                                <canvas id="deptChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card card-modern h-100">
+                        <div class="card-header bg-transparent py-3">
+                            <h5 class="card-title mb-0 fw-bold"><i class="fas fa-chart-pie me-2 text-info"></i>Appointment Status</h5>
+                        </div>
+                        <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                            <div style="height: 240px; width: 100%;">
+                                <canvas id="appointmentStatusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Appointments Table -->
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title mb-0 fw-bold"><i class="fas fa-calendar-day me-2 text-primary"></i>Recent Consultations</h5>
+                    <button class="btn btn-primary btn-sm" onclick="openNewAppointmentModal()">
+                        <i class="fas fa-plus me-1"></i>Book Appointment
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Department</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardRecentAppointments">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== PATIENTS VIEW =================== -->
+        <div id="section-patients" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-users me-2 text-primary"></i>Patient Directory</h5>
+                        <p class="text-muted small mb-0">Comprehensive record of registered patients</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="patientSearchInput" onkeyup="filterPatients()" class="form-control form-control-sm search-box-custom" placeholder="Search patients...">
+                        <button class="btn btn-primary btn-sm" onclick="openNewPatientModal()">
+                            <i class="fas fa-user-plus me-1"></i>New Patient
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Name</th>
+                                    <th>Gender & Age</th>
+                                    <th>Blood</th>
+                                    <th>Contact</th>
+                                    <th>City / Address</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patientsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== DOCTORS VIEW =================== -->
+        <div id="section-doctors" class="section-view">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="fas fa-user-md me-2 text-primary"></i>Hospital Medical Specialists</h5>
+                    <p class="text-muted small mb-0">Licensed medical staff and consultation slots</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <select id="doctorDeptFilter" onchange="filterDoctors()" class="form-select form-select-sm" style="width: 180px;">
+                        <option value="ALL">All Departments</option>
+                        <option value="Cardiology">Cardiology</option>
+                        <option value="Neurology">Neurology</option>
+                        <option value="Orthopedics">Orthopedics</option>
+                        <option value="Pediatrics">Pediatrics</option>
+                        <option value="General Medicine">General Medicine</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="openNewDoctorModal()">
+                        <i class="fas fa-plus me-1"></i>Add Doctor
+                    </button>
+                </div>
+            </div>
+            <div class="row g-4" id="doctorsGrid">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- =================== APPOINTMENTS VIEW =================== -->
+        <div id="section-appointments" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-calendar-check me-2 text-primary"></i>Appointment Schedule</h5>
+                        <p class="text-muted small mb-0">Manage booking slots and consultations</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <select id="appointmentFilter" onchange="filterAppointments()" class="form-select form-select-sm" style="width: 150px;">
+                            <option value="ALL">All Status</option>
+                            <option value="CONFIRMED">Confirmed</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm" onclick="openNewAppointmentModal()">
+                            <i class="fas fa-plus me-1"></i>Book Appointment
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Department</th>
+                                    <th>Schedule</th>
+                                    <th>Fee</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== MEDICAL RECORDS (EHR) =================== -->
+        <div id="section-records" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-file-medical me-2 text-primary"></i>Electronic Health Records (EHR)</h5>
+                        <p class="text-muted small mb-0">Clinical notes, vitals, prescriptions and diagnoses</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="openNewRecordModal()">
+                        <i class="fas fa-plus me-1"></i>New Record
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Record ID</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Diagnosis</th>
+                                    <th>Vitals (BP/HR/Temp)</th>
+                                    <th>Prescription</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== PHARMACY VIEW =================== -->
+        <div id="section-pharmacy" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-pills me-2 text-primary"></i>Pharmacy & Medication Stock</h5>
+                        <p class="text-muted small mb-0">Pharmaceutical drugs, stock levels, and expiry alerts</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" onclick="openNewMedicineModal()">
+                            <i class="fas fa-plus me-1"></i>Add Medicine
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Medicine Name</th>
+                                    <th>Category</th>
+                                    <th>Unit Price</th>
+                                    <th>Stock Qty</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Restock</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pharmacyTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== LABORATORY VIEW =================== -->
+        <div id="section-laboratory" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-flask me-2 text-primary"></i>Clinical Laboratory Tests</h5>
+                        <p class="text-muted small mb-0">Diagnostic pathology and radiology investigation orders</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="openNewLabModal()">
+                        <i class="fas fa-plus me-1"></i>Order Lab Test
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Test ID</th>
+                                    <th>Test Name</th>
+                                    <th>Patient</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Findings / Result</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="labTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== BILLING & INVOICING =================== -->
+        <div id="section-billing" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Invoices & Billing</h5>
+                        <p class="text-muted small mb-0">Patient charges, settled invoices, and pending dues</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="openNewBillModal()">
+                        <i class="fas fa-plus me-1"></i>Create Invoice
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Patient</th>
+                                    <th>Gross Amount</th>
+                                    <th>Discount</th>
+                                    <th>Net Total</th>
+                                    <th>Payment Mode</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billingTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== STAFF DIRECTORY =================== -->
+        <div id="section-staff" class="section-view">
+            <div class="card card-modern">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <h5 class="card-title mb-0 fw-bold"><i class="fas fa-id-badge me-2 text-primary"></i>Hospital Personnel Directory</h5>
+                        <p class="text-muted small mb-0">Nurses, administration, technicians and support teams</p>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="openNewStaffModal()">
+                        <i class="fas fa-plus me-1"></i>Add Staff
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Staff ID</th>
+                                    <th>Name</th>
+                                    <th>Designation</th>
+                                    <th>Department</th>
+                                    <th>Shift</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== REPORTS & ANALYTICS =================== -->
+        <div id="section-reports" class="section-view">
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card card-modern p-3 text-center">
+                        <div class="text-muted small fw-semibold">TOTAL BILLED AMOUNT</div>
+                        <div class="fs-3 fw-bold text-primary mt-1" id="reportBilledTotal">$7,850</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-modern p-3 text-center">
+                        <div class="text-muted small fw-semibold">TOTAL RECEIVED PAYMENTS</div>
+                        <div class="fs-3 fw-bold text-success mt-1" id="reportPaidTotal">$6,450</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-modern p-3 text-center">
+                        <div class="text-muted small fw-semibold">OUTSTANDING DUES</div>
+                        <div class="fs-3 fw-bold text-danger mt-1" id="reportDueTotal">$1,400</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card card-modern p-4">
+                <h5 class="fw-bold mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Consultation Volume Distribution</h5>
+                <div style="height: 350px;">
+                    <canvas id="reportsBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- =================== MODALS =================== -->
+
+<!-- New Patient Modal -->
+<div class="modal fade" id="newPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2 text-primary"></i>Register New Patient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newPatientForm" onsubmit="saveNewPatient(event)">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">First Name</label>
+                            <input type="text" id="patFirstName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Last Name</label>
+                            <input type="text" id="patLastName" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Gender</label>
+                            <select id="patGender" class="form-select">
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Blood Group</label>
+                            <select id="patBloodGroup" class="form-select">
+                                <option>O+</option><option>O-</option><option>A+</option><option>A-</option>
+                                <option>B+</option><option>B-</option><option>AB+</option><option>AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Age</label>
+                            <input type="number" id="patAge" class="form-control" value="32" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Phone Number</label>
+                            <input type="text" id="patPhone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Email Address</label>
+                            <input type="email" id="patEmail" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Address / City</label>
+                            <input type="text" id="patAddress" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold">Known Allergies</label>
+                            <input type="text" id="patAllergies" class="form-control" placeholder="None / Penicillin / etc.">
+                        </div>
+                    </div>
+                    <div class="mt-4 text-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-check me-1"></i>Save Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Book Appointment Modal -->
+<div class="modal fade" id="newAppointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-calendar-plus me-2 text-primary"></i>Book Doctor Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newAppointmentForm" onsubmit="saveNewAppointment(event)">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Select Patient</label>
+                        <select id="aptPatientSelect" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Select Doctor</label>
+                        <select id="aptDoctorSelect" class="form-select" required></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Date</label>
+                            <input type="date" id="aptDate" class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Time Slot</label>
+                            <select id="aptTime" class="form-select">
+                                <option>09:30 AM</option>
+                                <option>11:00 AM</option>
+                                <option>02:30 PM</option>
+                                <option>04:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Chief Complaints / Reason</label>
+                        <textarea id="aptReason" class="form-control" rows="2" placeholder="e.g. Regular checkup, headache..."></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-check me-1"></i>Confirm Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Invoice Modal -->
+<div class="modal fade" id="newBillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Create Hospital Invoice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newBillForm" onsubmit="saveNewBill(event)">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Patient</label>
+                        <select id="billPatientSelect" class="form-select" required></select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Consultation ($)</label>
+                            <input type="number" id="billConsult" class="form-control" value="80" oninput="updateBillCalc()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Lab Fees ($)</label>
+                            <input type="number" id="billLab" class="form-control" value="120" oninput="updateBillCalc()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Medicines ($)</label>
+                            <input type="number" id="billMed" class="form-control" value="50" oninput="updateBillCalc()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Discount ($)</label>
+                            <input type="number" id="billDiscount" class="form-control" value="0" oninput="updateBillCalc()">
+                        </div>
+                    </div>
+                    <div class="alert alert-info py-2 d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold">Net Total:</span>
+                        <span class="fs-5 fw-bold text-primary" id="billNetTotal">$250</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Payment Status</label>
+                        <select id="billStatus" class="form-select">
+                            <option value="PAID">PAID</option>
+                            <option value="PARTIAL">PARTIAL</option>
+                            <option value="UNPAID">UNPAID</option>
+                        </select>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-semibold"><i class="fas fa-check me-1"></i>Generate Invoice</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Standalone Application Logic -->
+<script>
+// Initial Store Data
+const initialData = {
+    currentUser: { username: 'admin', role: 'ADMIN' },
+    patients: [
+        { id: 'PAT-1001', name: 'Ananya Krishnan', gender: 'Female', age: 34, blood: 'B+', phone: '+91 91234 56789', email: 'ananya.k@email.com', address: 'Chennai, TN', allergies: 'Penicillin' },
+        { id: 'PAT-1002', name: 'Vikram Singh', gender: 'Male', age: 41, blood: 'O+', phone: '+91 91234 56790', email: 'vikram.s@email.com', address: 'Mumbai, MH', allergies: 'None' },
+        { id: 'PAT-1003', name: 'Lakshmi Venkat', gender: 'Female', age: 49, blood: 'A-', phone: '+91 91234 56791', email: 'lakshmi.v@email.com', address: 'Bangalore, KA', allergies: 'Sulfa Drugs' },
+        { id: 'PAT-1004', name: 'Mohammed Ali', gender: 'Male', age: 29, blood: 'AB+', phone: '+91 91234 56792', email: 'mohammed.a@email.com', address: 'Hyderabad, TS', allergies: 'None' },
+        { id: 'PAT-1005', name: 'Deepa Menon', gender: 'Female', age: 36, blood: 'B-', phone: '+91 91234 56793', email: 'deepa.m@email.com', address: 'Kochi, KL', allergies: 'Aspirin' }
+    ],
+    doctors: [
+        { id: 'DOC-101', name: 'Dr. Rajesh Kumar', dept: 'Cardiology', degree: 'MD, DM Cardiology', fee: 1500, phone: '9876543210', schedule: 'Mon - Sat (09:00 - 17:00)' },
+        { id: 'DOC-102', name: 'Dr. Priya Sharma', dept: 'Neurology', degree: 'MD, DM Neurology', fee: 1800, phone: '9876543211', schedule: 'Mon - Fri (10:00 - 18:00)' },
+        { id: 'DOC-103', name: 'Dr. Arjun Patel', dept: 'Orthopedics', degree: 'MS Orthopedics', fee: 1200, phone: '9876543212', schedule: 'Mon - Sat (08:00 - 16:00)' },
+        { id: 'DOC-104', name: 'Dr. Meena Reddy', dept: 'Pediatrics', degree: 'MD Pediatrics', fee: 1000, phone: '9876543213', schedule: 'Mon - Fri (09:00 - 17:00)' },
+        { id: 'DOC-105', name: 'Dr. Suresh Nair', dept: 'General Medicine', degree: 'MBBS, MD', fee: 800, phone: '9876543214', schedule: 'Mon - Sun (08:00 - 20:00)' }
+    ],
+    appointments: [
+        { id: 'APT-5001', patient: 'Ananya Krishnan', doctor: 'Dr. Rajesh Kumar', dept: 'Cardiology', date: 'Today, 10:30 AM', fee: '$150', status: 'CONFIRMED' },
+        { id: 'APT-5002', patient: 'Vikram Singh', doctor: 'Dr. Arjun Patel', dept: 'Orthopedics', date: 'Today, 11:45 AM', fee: '$120', status: 'PENDING' },
+        { id: 'APT-5003', patient: 'Lakshmi Venkat', doctor: 'Dr. Priya Sharma', dept: 'Neurology', date: 'Yesterday', fee: '$180', status: 'COMPLETED' },
+        { id: 'APT-5004', patient: 'Mohammed Ali', doctor: 'Dr. Suresh Nair', dept: 'General Medicine', date: 'Tomorrow, 02:00 PM', fee: '$80', status: 'CONFIRMED' }
+    ],
+    records: [
+        { id: 'REC-301', patient: 'Ananya Krishnan', doctor: 'Dr. Rajesh Kumar', diagnosis: 'Mild Hypertension & Fatigue', vitals: 'BP: 135/88 | HR: 78 | 98.4°F', rx: 'Amlodipine 5mg OD x 30 days', date: '2026-10-30' },
+        { id: 'REC-302', patient: 'Lakshmi Venkat', doctor: 'Dr. Priya Sharma', diagnosis: 'Migraine with Aura', vitals: 'BP: 120/80 | HR: 72 | 98.6°F', rx: 'Sumatriptan 50mg PRN', date: '2026-10-29' },
+        { id: 'REC-303', patient: 'Vikram Singh', doctor: 'Dr. Arjun Patel', diagnosis: 'Right Knee Meniscal Strain', vitals: 'BP: 125/82 | HR: 70 | 98.2°F', rx: 'Aceclofenac 100mg + Physiotherapy', date: '2026-10-28' }
+    ],
+    pharmacy: [
+        { code: 'MED-101', name: 'Paracetamol 650mg', category: 'Analgesics', price: '$2.50', stock: 450, reorder: 50, exp: '2027-12-31', status: 'IN_STOCK' },
+        { code: 'MED-102', name: 'Amoxicillin 500mg', category: 'Antibiotics', price: '$12.00', stock: 18, reorder: 30, exp: '2027-06-30', status: 'LOW_STOCK' },
+        { code: 'MED-103', name: 'Metformin 500mg', category: 'Antidiabetic', price: '$8.50', stock: 220, reorder: 40, exp: '2028-01-15', status: 'IN_STOCK' },
+        { code: 'MED-104', name: 'Atorvastatin 20mg', category: 'Cardiovascular', price: '$15.00', stock: 12, reorder: 25, exp: '2027-09-20', status: 'LOW_STOCK' },
+        { code: 'MED-105', name: 'Omeprazole 20mg', category: 'Gastroenterology', price: '$6.00', stock: 310, reorder: 30, exp: '2027-11-10', status: 'IN_STOCK' }
+    ],
+    laboratory: [
+        { id: 'LAB-201', test: 'Complete Blood Count (CBC)', patient: 'Ananya Krishnan', category: 'Pathology', status: 'COMPLETED', result: 'Hb: 12.8 g/dL (Normal: 12-15)' },
+        { id: 'LAB-202', test: 'Lipid Profile', patient: 'Vikram Singh', category: 'Biochemistry', status: 'SAMPLE_COLLECTED', result: 'Sample in processing' },
+        { id: 'LAB-203', test: 'Chest X-Ray PA View', patient: 'Mohammed Ali', category: 'Radiology', status: 'REQUESTED', result: 'Awaiting imaging scan' }
+    ],
+    billing: [
+        { id: 'INV-4001', patient: 'Ananya Krishnan', gross: '$320', discount: '$20', net: '$300', method: 'UPI / Card', status: 'PAID' },
+        { id: 'INV-4002', patient: 'Vikram Singh', gross: '$580', discount: '$0', net: '$580', method: 'Cash', status: 'PARTIAL' },
+        { id: 'INV-4003', patient: 'Lakshmi Venkat', gross: '$250', discount: '$0', net: '$250', method: 'Insurance', status: 'PAID' }
+    ],
+    staff: [
+        { id: 'STF-101', name: 'Sister Mary Grace', role: 'Head Nurse', dept: 'ICU / General Ward', shift: 'Morning', phone: '9876543220', status: 'ACTIVE' },
+        { id: 'STF-102', name: 'Kavita Sundaram', role: 'Senior Pharmacist', dept: 'Pharmacy', shift: 'General', phone: '9876543221', status: 'ACTIVE' },
+        { id: 'STF-103', name: 'Ramesh Verma', role: 'Lab Technologist', dept: 'Laboratory', shift: 'Night', phone: '9876543222', status: 'ACTIVE' }
+    ]
+};
+
+// Load state from localStorage or initialize
+let appStore = JSON.parse(localStorage.getItem('medicare_data')) || initialData;
+
+function saveStore() {
+    localStorage.setItem('medicare_data', JSON.stringify(appStore));
+}
+
+// Navigation & View Switching
+function showSection(sectionId, linkEl) {
+    document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('section-' + sectionId);
+    if (target) target.classList.add('active');
+
+    // Update active link in sidebar
+    if (linkEl) {
+        document.querySelectorAll('.sidebar-nav .nav-link').forEach(l => l.classList.remove('active'));
+        linkEl.classList.add('active');
+    }
+
+    // Update breadcrumb and page title
+    const formattedTitle = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+    document.getElementById('pageTitleHeading').innerText = formattedTitle === 'Dashboard' ? 'Hospital Dashboard' : formattedTitle;
+    document.getElementById('breadcrumbActive').innerText = formattedTitle;
+
+    // Trigger re-render of dynamic components if needed
+    if (sectionId === 'reports') renderReportsChart();
+    if (sectionId === 'dashboard') renderDashboardCharts();
+}
+
+// Toggle Sidebar for mobile / collapse
+function toggleSidebar() {
+    document.body.classList.toggle('sidebar-collapsed');
+}
+
+// Notifications
+function clearNotifications() {
+    document.getElementById('notifBadge').style.display = 'none';
+    document.getElementById('notifList').innerHTML = '<div class="p-3 text-center text-muted small"><i class="fas fa-check-circle text-success me-1"></i> All notifications cleared</div>';
+}
+
+// Render Dashboard Tables & Charts
+let deptChartInstance = null;
+let statusChartInstance = null;
+let reportsChartInstance = null;
+
+function renderDashboard() {
+    // Stats
+    document.getElementById('statPatientsCount').innerText = appStore.patients.length;
+    document.getElementById('statDoctorsCount').innerText = appStore.doctors.length;
+    document.getElementById('statAppointmentsCount').innerText = appStore.appointments.length;
+
+    // Recent Appointments Table
+    const tbody = document.getElementById('dashboardRecentAppointments');
+    tbody.innerHTML = '';
+    appStore.appointments.slice(0, 5).forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="fw-semibold text-primary">${a.id}</span></td>
+            <td><strong>${a.patient}</strong></td>
+            <td>${a.doctor}</td>
+            <td><span class="badge bg-light text-dark">${a.dept}</span></td>
+            <td>${a.date}</td>
+            <td><span class="badge-status badge-${a.status.toLowerCase()}">${a.status}</span></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-success" onclick="updateAppointmentStatus('${a.id}', 'COMPLETED')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="updateAppointmentStatus('${a.id}', 'CANCELLED')"><i class="fas fa-times"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    renderDashboardCharts();
+}
+
+function renderDashboardCharts() {
+    const ctxDept = document.getElementById('deptChart');
+    if (ctxDept) {
+        if (deptChartInstance) deptChartInstance.destroy();
+        deptChartInstance = new Chart(ctxDept, {
+            type: 'bar',
+            data: {
+                labels: ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'General Medicine'],
+                datasets: [{
+                    label: 'Consultation Load',
+                    data: [28, 19, 15, 22, 34],
+                    backgroundColor: 'rgba(26, 111, 166, 0.85)',
+                    borderRadius: 6
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    const ctxStatus = document.getElementById('appointmentStatusChart');
+    if (ctxStatus) {
+        if (statusChartInstance) statusChartInstance.destroy();
+        statusChartInstance = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Confirmed', 'Pending', 'Completed', 'Cancelled'],
+                datasets: [{
+                    data: [8, 4, 14, 2],
+                    backgroundColor: ['#0369a1', '#f59e0b', '#10b981', '#ef4444'],
+                    borderWidth: 2
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+// Render Patients Table
+function renderPatients() {
+    const tbody = document.getElementById('patientsTableBody');
+    tbody.innerHTML = '';
+    appStore.patients.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="badge bg-primary-subtle text-primary fw-bold">${p.id}</span></td>
+            <td><strong>${p.name}</strong><br><small class="text-muted">${p.email}</small></td>
+            <td>${p.gender}, ${p.age} yrs</td>
+            <td><span class="badge bg-danger text-white">${p.blood}</span></td>
+            <td>${p.phone}</td>
+            <td>${p.address}</td>
+            <td class="text-end action-btn-group">
+                <button class="btn btn-outline-danger btn-sm" onclick="deletePatient('${p.id}')"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function filterPatients() {
+    const query = document.getElementById('patientSearchInput').value.toLowerCase();
+    document.querySelectorAll('#patientsTableBody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+// Render Doctors Grid
+function renderDoctors() {
+    const grid = document.getElementById('doctorsGrid');
+    grid.innerHTML = '';
+    appStore.doctors.forEach(d => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4';
+        col.innerHTML = `
+            <div class="card card-modern h-100 p-3">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="user-avatar-sm me-3 bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:48px; height:48px; font-size:20px;">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0">${d.name}</h6>
+                        <span class="badge bg-light text-primary fw-semibold">${d.dept}</span>
+                    </div>
+                </div>
+                <div class="small text-muted mb-2"><i class="fas fa-graduation-cap me-2"></i>${d.degree}</div>
+                <div class="small text-muted mb-2"><i class="fas fa-clock me-2"></i>${d.schedule}</div>
+                <div class="small text-muted mb-3"><i class="fas fa-phone me-2"></i>${d.phone}</div>
+                <div class="mt-auto d-flex justify-content-between align-items-center pt-2 border-top">
+                    <span class="fw-bold text-dark">Fee: $${d.fee}</span>
+                    <button class="btn btn-primary btn-sm" onclick="bookWithDoctor('${d.name}', '${d.dept}')">Book Slot</button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(col);
+    });
+}
+
+function filterDoctors() {
+    const dept = document.getElementById('doctorDeptFilter').value;
+    document.querySelectorAll('#doctorsGrid > div').forEach(card => {
+        card.style.display = (dept === 'ALL' || card.innerText.includes(dept)) ? '' : 'none';
+    });
+}
+
+// Render Appointments Table
+function renderAppointments() {
+    const tbody = document.getElementById('appointmentsTableBody');
+    tbody.innerHTML = '';
+    appStore.appointments.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong class="text-primary">${a.id}</strong></td>
+            <td><strong>${a.patient}</strong></td>
+            <td>${a.doctor}</td>
+            <td><span class="badge bg-light text-dark">${a.dept}</span></td>
+            <td>${a.date}</td>
+            <td><strong>${a.fee}</strong></td>
+            <td><span class="badge-status badge-${a.status.toLowerCase()}">${a.status}</span></td>
+            <td class="text-end action-btn-group">
+                <button class="btn btn-sm btn-outline-success" title="Mark Completed" onclick="updateAppointmentStatus('${a.id}', 'COMPLETED')"><i class="fas fa-check"></i></button>
+                <button class="btn btn-sm btn-outline-danger" title="Cancel" onclick="updateAppointmentStatus('${a.id}', 'CANCELLED')"><i class="fas fa-times"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function filterAppointments() {
+    const status = document.getElementById('appointmentFilter').value;
+    document.querySelectorAll('#appointmentsTableBody tr').forEach(row => {
+        row.style.display = (status === 'ALL' || row.innerText.includes(status)) ? '' : 'none';
+    });
+}
+
+function updateAppointmentStatus(id, newStatus) {
+    const apt = appStore.appointments.find(a => a.id === id);
+    if (apt) {
+        apt.status = newStatus;
+        saveStore();
+        renderDashboard();
+        renderAppointments();
+    }
+}
+
+// Render Medical Records (EHR)
+function renderRecords() {
+    const tbody = document.getElementById('recordsTableBody');
+    tbody.innerHTML = '';
+    appStore.records.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="badge bg-light text-primary fw-bold">${r.id}</span></td>
+            <td><strong>${r.patient}</strong></td>
+            <td>${r.doctor}</td>
+            <td><strong>${r.diagnosis}</strong></td>
+            <td><small class="text-muted">${r.vitals}</small></td>
+            <td><span class="badge bg-info-subtle text-info">${r.rx}</span></td>
+            <td><small>${r.date}</small></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary" onclick="alert('Clinical Record: ' + '${r.diagnosis}')"><i class="fas fa-eye"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Render Pharmacy
+function renderPharmacy() {
+    const tbody = document.getElementById('pharmacyTableBody');
+    tbody.innerHTML = '';
+    appStore.pharmacy.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${m.code}</strong></td>
+            <td><strong>${m.name}</strong></td>
+            <td><span class="badge bg-light text-dark">${m.category}</span></td>
+            <td><strong>${m.price}</strong></td>
+            <td><span class="fw-bold ${m.stock < m.reorder ? 'text-danger' : 'text-success'}">${m.stock} units</span></td>
+            <td><small class="text-muted">${m.exp}</small></td>
+            <td><span class="badge-status badge-${m.status.toLowerCase()}">${m.status.replace('_',' ')}</span></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary" onclick="restockMedicine('${m.code}')"><i class="fas fa-box me-1"></i>+50</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function restockMedicine(code) {
+    const med = appStore.pharmacy.find(m => m.code === code);
+    if (med) {
+        med.stock += 50;
+        med.status = 'IN_STOCK';
+        saveStore();
+        renderPharmacy();
+    }
+}
+
+// Render Laboratory
+function renderLaboratory() {
+    const tbody = document.getElementById('labTableBody');
+    tbody.innerHTML = '';
+    appStore.laboratory.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="badge bg-light text-primary fw-bold">${l.id}</span></td>
+            <td><strong>${l.test}</strong></td>
+            <td>${l.patient}</td>
+            <td><span class="badge bg-secondary-subtle text-dark">${l.category}</span></td>
+            <td><span class="badge-status badge-${l.status === 'COMPLETED' ? 'completed' : 'pending'}">${l.status}</span></td>
+            <td><small class="text-muted">${l.result}</small></td>
+            <td class="text-end">
+                ${l.status !== 'COMPLETED' ? `<button class="btn btn-sm btn-success" onclick="completeLabTest('${l.id}')">Complete</button>` : '<i class="fas fa-check text-success"></i>'}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function completeLabTest(id) {
+    const t = appStore.laboratory.find(x => x.id === id);
+    if (t) {
+        t.status = 'COMPLETED';
+        t.result = 'Normal findings confirmed';
+        saveStore();
+        renderLaboratory();
+    }
+}
+
+// Render Billing
+function renderBilling() {
+    const tbody = document.getElementById('billingTableBody');
+    tbody.innerHTML = '';
+    appStore.billing.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong class="text-primary">${b.id}</strong></td>
+            <td><strong>${b.patient}</strong></td>
+            <td>${b.gross}</td>
+            <td>${b.discount}</td>
+            <td><strong>${b.net}</strong></td>
+            <td><small class="text-muted">${b.method}</small></td>
+            <td><span class="badge-status badge-${b.status.toLowerCase()}">${b.status}</span></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary" onclick="alert('Invoice receipt generated for ' + '${b.patient}')"><i class="fas fa-print"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Render Staff
+function renderStaff() {
+    const tbody = document.getElementById('staffTableBody');
+    tbody.innerHTML = '';
+    appStore.staff.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong class="text-primary">${s.id}</strong></td>
+            <td><strong>${s.name}</strong></td>
+            <td><span class="badge bg-light text-primary">${s.role}</span></td>
+            <td>${s.dept}</td>
+            <td><span class="badge bg-secondary-subtle text-dark">${s.shift}</span></td>
+            <td>${s.phone}</td>
+            <td><span class="badge bg-success">ACTIVE</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Reports Chart
+function renderReportsChart() {
+    const ctx = document.getElementById('reportsBarChart');
+    if (ctx) {
+        if (reportsChartInstance) reportsChartInstance.destroy();
+        reportsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Cardiology', 'Neurology', 'Orthopedics', 'Pediatrics', 'General Medicine', 'Pharmacy', 'Radiology'],
+                datasets: [{
+                    label: 'Patient Volume (Q3)',
+                    data: [65, 59, 80, 81, 95, 120, 45],
+                    backgroundColor: '#1a6fa6',
+                    borderRadius: 6
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+}
+
+// Modals Handling
+function openNewPatientModal() {
+    new bootstrap.Modal(document.getElementById('newPatientModal')).show();
+}
+
+function saveNewPatient(e) {
+    e.preventDefault();
+    const newPat = {
+        id: 'PAT-' + (1000 + appStore.patients.length + 1),
+        name: document.getElementById('patFirstName').value + ' ' + document.getElementById('patLastName').value,
+        gender: document.getElementById('patGender').value,
+        age: document.getElementById('patAge').value,
+        blood: document.getElementById('patBloodGroup').value,
+        phone: document.getElementById('patPhone').value,
+        email: document.getElementById('patEmail').value,
+        address: document.getElementById('patAddress').value,
+        allergies: document.getElementById('patAllergies').value || 'None'
+    };
+    appStore.patients.unshift(newPat);
+    saveStore();
+    renderPatients();
+    renderDashboard();
+    bootstrap.Modal.getInstance(document.getElementById('newPatientModal')).hide();
+    document.getElementById('newPatientForm').reset();
+}
+
+function deletePatient(id) {
+    if (confirm('Are you sure you want to delete patient ' + id + '?')) {
+        appStore.patients = appStore.patients.filter(p => p.id !== id);
+        saveStore();
+        renderPatients();
+        renderDashboard();
+    }
+}
+
+function openNewAppointmentModal() {
+    // Populate select options
+    const patSelect = document.getElementById('aptPatientSelect');
+    const docSelect = document.getElementById('aptDoctorSelect');
+    patSelect.innerHTML = appStore.patients.map(p => `<option value="${p.name}">${p.name} (${p.id})</option>`).join('');
+    docSelect.innerHTML = appStore.doctors.map(d => `<option value="${d.name}|${d.dept}|${d.fee}">${d.name} - ${d.dept} ($${d.fee})</option>`).join('');
+    document.getElementById('aptDate').valueAsDate = new Date();
+    new bootstrap.Modal(document.getElementById('newAppointmentModal')).show();
+}
+
+function saveNewAppointment(e) {
+    e.preventDefault();
+    const docInfo = document.getElementById('aptDoctorSelect').value.split('|');
+    const newApt = {
+        id: 'APT-' + (5000 + appStore.appointments.length + 1),
+        patient: document.getElementById('aptPatientSelect').value,
+        doctor: docInfo[0],
+        dept: docInfo[1],
+        date: document.getElementById('aptDate').value + ' at ' + document.getElementById('aptTime').value,
+        fee: '$' + docInfo[2],
+        status: 'CONFIRMED'
+    };
+    appStore.appointments.unshift(newApt);
+    saveStore();
+    renderAppointments();
+    renderDashboard();
+    bootstrap.Modal.getInstance(document.getElementById('newAppointmentModal')).hide();
+}
+
+function bookWithDoctor(docName, dept) {
+    showSection('appointments');
+    openNewAppointmentModal();
+}
+
+function openNewBillModal() {
+    const patSelect = document.getElementById('billPatientSelect');
+    patSelect.innerHTML = appStore.patients.map(p => `<option value="${p.name}">${p.name} (${p.id})</option>`).join('');
+    updateBillCalc();
+    new bootstrap.Modal(document.getElementById('newBillModal')).show();
+}
+
+function updateBillCalc() {
+    const c = parseFloat(document.getElementById('billConsult').value || 0);
+    const l = parseFloat(document.getElementById('billLab').value || 0);
+    const m = parseFloat(document.getElementById('billMed').value || 0);
+    const d = parseFloat(document.getElementById('billDiscount').value || 0);
+    const net = Math.max(0, (c + l + m) - d);
+    document.getElementById('billNetTotal').innerText = '$' + net;
+}
+
+function saveNewBill(e) {
+    e.preventDefault();
+    const net = document.getElementById('billNetTotal').innerText;
+    const newB = {
+        id: 'INV-' + (4000 + appStore.billing.length + 1),
+        patient: document.getElementById('billPatientSelect').value,
+        gross: net,
+        discount: '$' + document.getElementById('billDiscount').value,
+        net: net,
+        method: 'Card / Cash',
+        status: document.getElementById('billStatus').value
+    };
+    appStore.billing.unshift(newB);
+    saveStore();
+    renderBilling();
+    bootstrap.Modal.getInstance(document.getElementById('newBillModal')).hide();
+}
+
+// Authentication
+function quickLogin(role) {
+    appStore.currentUser = { username: role, role: role.toUpperCase() };
+    saveStore();
+    document.getElementById('authOverlay').style.display = 'none';
+    updateUserUI();
+}
+
+function handleAuthSubmit(e) {
+    e.preventDefault();
+    const u = document.getElementById('loginUsername').value;
+    quickLogin(u || 'admin');
+}
+
+function logout() {
+    document.getElementById('authOverlay').style.display = 'flex';
+}
+
+function updateUserUI() {
+    const u = appStore.currentUser || { username: 'admin', role: 'ADMIN' };
+    document.getElementById('sidebarUserName').innerText = u.username;
+    document.getElementById('sidebarUserRole').innerText = u.role;
+    document.getElementById('topbarUserName').innerText = u.username;
+    document.getElementById('userMenuRole').innerText = 'Logged in as ' + u.role;
+}
+
+// Initial Boot
+document.addEventListener('DOMContentLoaded', () => {
+    updateUserUI();
+    renderDashboard();
+    renderPatients();
+    renderDoctors();
+    renderAppointments();
+    renderRecords();
+    renderPharmacy();
+    renderLaboratory();
+    renderBilling();
+    renderStaff();
+});
+</script>
+</body>
+</html>
