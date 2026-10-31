@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: medicare-hospital-management
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    envVars:
+      - key: PORT
+        value: 8080

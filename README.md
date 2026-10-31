@@ -114,3 +114,29 @@ Once started, open your web browser and navigate to:
 ```
 http://localhost:8080
 ```
+
+---
+
+## 🌐 How to Host Live from GitHub (Free Cloud Deployment)
+
+Because this is a dynamic **Java / Spring Boot** application (not a static website), it cannot be hosted on GitHub Pages alone (which only serves static HTML/JS/CSS). However, you can host it **100% free** directly linked to your GitHub repository using any of the following cloud platforms:
+
+### Option 1: Render.com (Recommended - 1-Click Auto-Deploy)
+1. Sign up / Log in to [Render.com](https://render.com) using your GitHub account.
+2. Click **New +** ➔ **Web Service**.
+3. Select your repository: `naveenarul2007/hospital-management`.
+4. Choose **Docker** as the Runtime (or select the repository's `render.yaml`).
+5. Choose the **Free** instance plan.
+6. Click **Create Web Service**. Render will automatically build the Docker container and give you a public URL (e.g. `https://medicare-hospital.onrender.com`). Every time you push to `main`, it will auto-deploy!
+
+### Option 2: Railway.app
+1. Go to [Railway.app](https://railway.app) and log in with GitHub.
+2. Click **New Project** ➔ **Deploy from GitHub repo**.
+3. Select `hospital-management`.
+4. Railway will automatically detect the `Dockerfile` and deploy your app with a public domain!
+
+### Option 3: Koyeb
+1. Go to [Koyeb.com](https://www.koyeb.com) and link your GitHub account.
+2. Create a new service from your GitHub repo.
+3. Koyeb will build the Dockerfile and deploy to their global edge network.
+
