@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Invoice</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        @media print {
+            .sidebar, .topbar, .page-header, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            .invoice-card { border: none !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('billing')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header-title"><i class="fas fa-file-invoice me-2 text-primary"></i>Hospital Billing Receipt</h1>
+            <p class="page-header-subtitle">Official tax invoice and payment acknowledgement</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-outline-dark">
+                <i class="fas fa-print me-1"></i> Print / PDF
+            </button>
+            <a href="/billing" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Bills
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Invoice Paper -->
+    <div class="card border-0 shadow-sm invoice-card" style="border-radius:14px; max-width: 860px; margin: 0 auto;">
+        <div class="card-body p-5">
+
+            <!-- Hospital Header & Invoice Meta -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:56px;height:56px;background:linear-gradient(135deg,#1a6fa6,#1eae98);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;">
+                        <i class="fas fa-hospital-alt"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-0 text-primary">MediCare Hospital</h2>
+                        <small class="text-muted">Multi-Specialty Healthcare Services</small>
+                        <div class="small text-muted mt-1">GSTIN: 33AAACM1234F1Z8 | Helpline: 1800-123-4567</div>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="h4 fw-bold text-dark mb-1">INVOICE</div>
+                    <div class="fw-bold text-primary" th:text="${bill.id}">BIL-601</div>
+                    <div class="small text-muted">Date: <span th:text="${bill.generatedAt != null ? #temporals.format(bill.generatedAt, 'dd MMM yyyy') : '-'}">01 Nov 2026</span></div>
+                    <div class="mt-2">
+                        <span class="badge fs-6 px-3 py-1"
+                              th:classappend="${bill.paymentStatus == 'PAID' ? 'bg-success' : (bill.paymentStatus == 'PARTIAL' ? 'bg-warning text-dark' : 'bg-danger')}"
+                              th:text="${bill.paymentStatus}">PAID</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billed To & Linked Info -->
+            <div class="row g-3 p-3 bg-light rounded-3 mb-4">
+                <div class="col-md-6 border-end">
+                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Billed To (Patient)</small>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${bill.patientName}">Patient Name</h5>
+                    <div class="small text-muted">Patient ID: <span class="fw-bold" th:text="${bill.patientId}">PAT-1001</span></div>
+                </div>
+                <div class="col-md-6 ps-md-4">
+                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Encounter Information</small>
+                    <div class="small text-dark">Appointment Ref: <strong th:text="${bill.appointmentId ?: 'Direct / Walk-in'}">APT-5001</strong></div>
+                    <div class="small text-dark" th:if="${bill.paidAt != null}">Payment Settled: <strong th:text="${#temporals.format(bill.paidAt, 'dd MMM yyyy, hh:mm a')}">01 Nov</strong></div>
+                    <div class="small text-dark" th:if="${bill.paymentMethod != null}">Method: <strong th:text="${bill.paymentMethod}">UPI</strong></div>
+                </div>
+            </div>
+
+            <!-- Itemized Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Description of Services</th>
+                            <th class="text-end">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Physician Consultation Fee</td>
+                            <td class="text-end fw-semibold" th:text="'₹' + ${bill.consultationCharge}">₹800.00</td>
+                        </tr>
+                        <tr th:if="${bill.labCharge > 0}">
+                            <td>2</td>
+                            <td>Laboratory Diagnostic Investigations</td>
+                            <td class="text-end fw-semibold" th:text="'₹' + ${bill.labCharge}">₹350.00</td>
+                        </tr>
+                        <tr th:if="${bill.medicineCharge > 0}">
+                            <td>3</td>
+                            <td>Pharmacy Dispensed Medications</td>
+                            <td class="text-end fw-semibold" th:text="'₹' + ${bill.medicineCharge}">₹200.00</td>
+                        </tr>
+                        <tr th:if="${bill.otherCharges > 0}">
+                            <td>4</td>
+                            <td>Nursing & Hospital Facilities Charge</td>
+                            <td class="text-end fw-semibold" th:text="'₹' + ${bill.otherCharges}">₹150.00</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="text-end fw-bold">Subtotal</td>
+                            <td class="text-end fw-bold" th:text="'₹' + ${bill.consultationCharge + bill.labCharge + bill.medicineCharge + bill.otherCharges}">₹1,500.00</td>
+                        </tr>
+                        <tr th:if="${bill.discountAmount > 0}">
+                            <td colspan="2" class="text-end text-danger fw-bold">Discount Applied (-)</td>
+                            <td class="text-end text-danger fw-bold" th:text="'-₹' + ${bill.discountAmount}">-₹100.00</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td colspan="2" class="text-end fw-bold fs-5">Total Net Payable</td>
+                            <td class="text-end fw-bold fs-5 text-primary" th:text="'₹' + ${bill.totalAmount}">₹1,400.00</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="text-end fw-bold text-success">Amount Paid</td>
+                            <td class="text-end fw-bold text-success" th:text="'₹' + ${bill.paidAmount}">₹1,400.00</td>
+                        </tr>
+                        <tr th:if="${bill.getBalance() > 0}">
+                            <td colspan="2" class="text-end fw-bold text-danger">Outstanding Balance Due</td>
+                            <td class="text-end fw-bold text-danger fs-5" th:text="'₹' + ${bill.getBalance()}">₹0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-4 p-3 bg-light rounded" th:if="${bill.notes}">
+                <small class="fw-bold text-muted d-block mb-1">Remarks / Payment Notes:</small>
+                <div class="small text-dark" th:text="${bill.notes}">Standard billing notes...</div>
+            </div>
+
+            <!-- Footer & Signature -->
+            <div class="d-flex justify-content-between align-items-end mt-5 pt-4 border-top">
+                <div class="small text-muted">
+                    <div>Thank you for choosing MediCare Hospital.</div>
+                    <div>This is a computer-generated medical bill.</div>
+                </div>
+                <div class="text-center">
+                    <div class="border-top pt-2 px-4" style="min-width:180px;">
+                        <strong class="text-dark d-block">Authorized Signatory</strong>
+                        <small class="text-muted">Accounts & Billing Dept</small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

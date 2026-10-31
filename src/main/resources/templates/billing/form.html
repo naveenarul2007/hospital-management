@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Generate Bill</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('billing')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-file-invoice-dollar me-2 text-primary"></i>
+                <span th:text="${bill.id != null ? 'Edit Invoice' : 'Generate New Invoice'}">Generate Bill</span>
+            </h1>
+            <p class="page-header-subtitle">Create patient bill with line charges, discounts, and itemized totals</p>
+        </div>
+        <a href="/billing" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Invoices</a>
+    </div>
+
+    <form th:action="@{/billing/save}" method="post">
+        <input type="hidden" name="billId" th:value="${bill.id}">
+
+        <!-- Patient & Link Section -->
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-user"></i> Patient & Encounter</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Select Patient <span class="text-danger">*</span></label>
+                    <select name="patientId" class="form-select" required>
+                        <option value="">-- Choose Patient --</option>
+                        <option th:each="p : ${patients}"
+                                th:value="${p.id}"
+                                th:text="${p.fullName + ' (' + p.id + ')'}"
+                                th:selected="${p.id == bill.patientId or p.id == param.patientId}"></option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Linked Appointment (Optional)</label>
+                    <select name="appointmentId" class="form-select">
+                        <option value="">-- None / Direct Walk-in --</option>
+                        <option th:each="a : ${appointments}"
+                                th:value="${a.id}"
+                                th:text="${a.id + ' - ' + a.patientName + ' with ' + a.doctorName + ' (' + a.appointmentDate + ')'}"
+                                th:selected="${a.id == bill.appointmentId}"></option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Breakdown Charges -->
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-calculator"></i> Itemized Charges (₹)</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Doctor Consultation Fee</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" name="consultationCharge" id="consultationCharge" class="form-control" 
+                               th:value="${bill.consultationCharge != null ? bill.consultationCharge : 0.0}" oninput="calculateBillTotal()" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Laboratory & Diagnostic Charges</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" name="labCharge" id="labCharge" class="form-control" 
+                               th:value="${bill.labCharge != null ? bill.labCharge : 0.0}" oninput="calculateBillTotal()" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Pharmacy & Medicine Charges</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" name="medicineCharge" id="medicineCharge" class="form-control" 
+                               th:value="${bill.medicineCharge != null ? bill.medicineCharge : 0.0}" oninput="calculateBillTotal()" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Room / Nursing / Other Charges</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" name="otherCharges" id="otherCharges" class="form-control" 
+                               th:value="${bill.otherCharges != null ? bill.otherCharges : 0.0}" oninput="calculateBillTotal()" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Discount Applied (₹)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" name="discountAmount" id="discountAmount" class="form-control" 
+                               th:value="${bill.discountAmount != null ? bill.discountAmount : 0.0}" oninput="calculateBillTotal()" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-primary">Calculated Total Net Payable (₹)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white fw-bold">₹</span>
+                        <input type="text" id="totalAmount" class="form-control fw-bold fs-5 text-primary" 
+                               th:value="${bill.totalAmount != null ? bill.totalAmount : 0.0}" readonly>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Billing Remarks / Payment Terms</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Standard consultation fee and CBC test charges included." th:text="${bill.notes}"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a href="/billing" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-check-circle me-2"></i>Save & Generate Invoice</button>
+        </div>
+    </form>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    calculateBillTotal();
+});
+</script>
+</body>
+</html>

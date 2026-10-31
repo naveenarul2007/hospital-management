@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Medical Record</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        @media print {
+            .sidebar, .topbar, .page-header, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+            .print-sheet { border: none !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('medical-records')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-file-medical me-2 text-primary"></i>Medical Examination & Prescription Sheet
+            </h1>
+            <p class="page-header-subtitle">Official hospital clinical documentation and prescription</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-outline-dark">
+                <i class="fas fa-print me-1"></i> Print / Save PDF
+            </button>
+            <a th:href="@{/medical-records/edit/{id}(id=${record.id})}" class="btn btn-warning">
+                <i class="fas fa-edit me-1"></i> Edit Record
+            </a>
+            <a href="/medical-records" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Official Clinical Sheet Container -->
+    <div class="card border-0 shadow-sm print-sheet" style="border-radius:14px; max-width: 900px; margin: 0 auto;">
+        <div class="card-body p-5">
+
+            <!-- Hospital Header -->
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:56px;height:56px;background:linear-gradient(135deg,#1a6fa6,#1eae98);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;">
+                        <i class="fas fa-hospital-alt"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-0 text-primary">MediCare Hospital</h2>
+                        <small class="text-muted">Multi-Specialty Healthcare & Research Institute</small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-primary px-3 py-1 fs-6" th:text="${record.id}">REC-201</span>
+                    <div class="small text-muted mt-1">Date: <strong th:text="${record.recordedAt != null ? #temporals.format(record.recordedAt, 'dd MMM yyyy, hh:mm a') : '-'}">01 Nov 2026</strong></div>
+                </div>
+            </div>
+
+            <!-- Patient & Physician Banner -->
+            <div class="row g-3 p-3 bg-light rounded-3 mb-4">
+                <div class="col-md-6 border-end">
+                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Patient Details</small>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${record.patientName}">Patient Name</h5>
+                    <div class="small text-muted">Patient ID: <span class="fw-bold" th:text="${record.patientId}">PAT-1001</span></div>
+                </div>
+                <div class="col-md-6 ps-md-4">
+                    <small class="text-muted text-uppercase fw-semibold d-block mb-1">Consulting Physician</small>
+                    <h5 class="fw-bold text-primary mb-1" th:text="${record.doctorName}">Dr. Rajesh Sharma</h5>
+                    <div class="small text-muted">Physician ID: <span class="fw-bold" th:text="${record.doctorId}">DOC-101</span></div>
+                </div>
+            </div>
+
+            <!-- Clinical Assessment -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">
+                    <i class="fas fa-stethoscope me-2 text-primary"></i>Clinical Assessment
+                </h6>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <span class="badge bg-light text-primary border px-3 py-2 fs-6">
+                            Diagnosis: <strong th:text="${record.diagnosis}">Type 2 Diabetes</strong>
+                        </span>
+                    </div>
+                    <div class="col-12" th:if="${record.symptoms}">
+                        <small class="text-muted fw-bold d-block">Symptoms / Chief Complaints:</small>
+                        <p class="mb-0 text-dark" th:text="${record.symptoms}">Excessive thirst, fatigue</p>
+                    </div>
+                    <div class="col-12" th:if="${record.observations}">
+                        <small class="text-muted fw-bold d-block">Vitals & Observations:</small>
+                        <p class="mb-0 text-dark" th:text="${record.observations}">BP: 130/85, Pulse: 78</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rx / Prescription -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-uppercase text-secondary border-bottom pb-2 mb-3">
+                    <span class="text-danger fs-5 fw-bold me-2">℞</span>Prescription / Medications
+                </h6>
+                <div class="p-3 rounded-3" style="background:#f8faff; border-left:4px solid #1a6fa6;">
+                    <pre class="mb-0 font-monospace text-dark" style="white-space:pre-wrap;font-size:14px;" th:text="${record.prescription ?: 'No prescription recorded.'}"></pre>
+                </div>
+            </div>
+
+            <!-- Treatment Plan & Lab Orders -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6" th:if="${record.treatment}">
+                    <div class="p-3 border rounded-3 h-100">
+                        <small class="text-muted fw-bold d-block mb-1"><i class="fas fa-heartbeat me-1 text-success"></i>Treatment Plan</small>
+                        <p class="mb-0 small text-dark" th:text="${record.treatment}"></p>
+                    </div>
+                </div>
+                <div class="col-md-6" th:if="${record.labTests}">
+                    <div class="p-3 border rounded-3 h-100">
+                        <small class="text-muted fw-bold d-block mb-1"><i class="fas fa-vial me-1 text-info"></i>Lab Investigations Ordered</small>
+                        <p class="mb-0 small text-dark" th:text="${record.labTests}"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Follow-up & Doctor Signature -->
+            <div class="d-flex justify-content-between align-items-end mt-5 pt-4 border-top">
+                <div>
+                    <div class="text-muted small">Next Follow-Up Date</div>
+                    <strong class="text-primary fs-6" th:text="${record.followUpDate ?: 'As needed'}">15 Nov 2026</strong>
+                </div>
+                <div class="text-center">
+                    <div class="text-muted small mb-3">Doctor's Digital Signature</div>
+                    <div class="border-top pt-2 px-4" style="min-width:200px;">
+                        <strong class="text-dark d-block" th:text="${record.doctorName}">Dr. Rajesh Sharma</strong>
+                        <small class="text-muted">MediCare Hospital Specialist</small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

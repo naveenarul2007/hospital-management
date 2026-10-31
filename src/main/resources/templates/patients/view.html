@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Patient Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('patients')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-id-card me-2 text-primary"></i>Patient Profile
+            </h1>
+            <p class="page-header-subtitle">Comprehensive patient medical record & history</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/patients/edit/{id}(id=${patient.id})}" class="btn btn-warning">
+                <i class="fas fa-edit me-1"></i> Edit Profile
+            </a>
+            <a th:href="@{/appointments/new(patientId=${patient.id})}" class="btn btn-primary">
+                <i class="fas fa-calendar-plus me-1"></i> Book Appointment
+            </a>
+            <a href="/patients" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Patient Header Card -->
+    <div class="card mb-4 border-0 shadow-sm" style="border-radius:14px;overflow:hidden;">
+        <div class="card-body p-4" style="background:linear-gradient(135deg, rgba(26,111,166,0.06), rgba(30,174,152,0.06));">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-circle-lg" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1a6fa6,#1eae98);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;">
+                        <span th:text="${patient.firstName != null ? patient.firstName.substring(0,1) : 'P'}">P</span>
+                    </div>
+                    <div>
+                        <h3 class="mb-1 fw-bold text-dark" th:text="${patient.fullName}">Patient Name</h3>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="badge bg-primary px-3 py-1 rounded-pill" th:text="${patient.id}">PAT-1001</span>
+                            <span class="badge bg-info text-dark px-2 py-1 rounded-pill" th:text="${patient.gender}">Gender</span>
+                            <span class="badge bg-secondary px-2 py-1 rounded-pill" th:text="${patient.age + ' yrs'}">35 yrs</span>
+                            <span class="badge bg-danger px-2 py-1 rounded-pill" th:if="${patient.bloodGroup}" th:text="'Blood: ' + ${patient.bloodGroup}">O+</span>
+                            <span class="badge bg-success px-2 py-1 rounded-pill" th:text="${patient.status}">ACTIVE</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 text-muted">
+                    <div class="text-end">
+                        <small class="d-block text-secondary">Registered Date</small>
+                        <strong class="text-dark" th:text="${patient.registeredAt != null ? #temporals.format(patient.registeredAt, 'dd MMM yyyy') : 'N/A'}">01 Jan 2026</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="form-section h-100">
+                <div class="form-section-title"><i class="fas fa-phone-alt"></i> Contact & Address</div>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Phone Number</small>
+                        <strong th:text="${patient.phone}">+91 9876543210</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Email Address</small>
+                        <strong th:text="${patient.email ?: 'N/A'}">email@example.com</strong>
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted d-block">Residential Address</small>
+                        <span th:text="${patient.address ?: 'Not specified'}">Address details</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Emergency Contact</small>
+                        <strong th:text="${patient.emergencyContact ?: 'N/A'}">Relation / Name</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">Emergency Phone</small>
+                        <strong th:text="${patient.emergencyPhone ?: 'N/A'}">+91 0000000000</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="form-section h-100">
+                <div class="form-section-title"><i class="fas fa-heartbeat"></i> Medical Summary & Allergies</div>
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">Known Allergies</small>
+                    <div th:if="${patient.allergies != null and !patient.allergies.isEmpty()}" class="alert alert-warning py-2 mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i><span th:text="${patient.allergies}">Penicillin</span>
+                    </div>
+                    <div th:unless="${patient.allergies != null and !patient.allergies.isEmpty()}" class="text-muted fst-italic">
+                        No known drug or food allergies recorded.
+                    </div>
+                </div>
+                <div>
+                    <small class="text-muted d-block mb-1">Medical History & Chronic Conditions</small>
+                    <p class="mb-0 text-dark" th:text="${patient.medicalHistory ?: 'No significant medical history recorded.'}"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Appointments, Medical Records, Lab Tests, Bills -->
+    <div class="data-table-container">
+        <ul class="nav nav-tabs px-3 pt-3" id="patientTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active fw-semibold" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane">
+                    <i class="fas fa-calendar-alt me-1"></i> Appointments (<span th:text="${appointments.size()}">0</span>)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="records-tab" data-bs-toggle="tab" data-bs-target="#records-pane">
+                    <i class="fas fa-file-medical me-1"></i> Medical Records (<span th:text="${medicalRecords.size()}">0</span>)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="labs-tab" data-bs-toggle="tab" data-bs-target="#labs-pane">
+                    <i class="fas fa-flask me-1"></i> Lab Tests (<span th:text="${labTests.size()}">0</span>)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link fw-semibold" id="bills-tab" data-bs-toggle="tab" data-bs-target="#bills-pane">
+                    <i class="fas fa-receipt me-1"></i> Bills & Invoices (<span th:text="${bills.size()}">0</span>)
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4" id="patientTabContent">
+            <!-- Appointments Pane -->
+            <div class="tab-pane fade show active" id="appointments-pane">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Patient Appointments</h6>
+                    <a th:href="@{/appointments/new(patientId=${patient.id})}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Appointment
+                    </a>
+                </div>
+                <div class="table-responsive" th:if="${!appointments.empty}">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Date & Time</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="apt : ${appointments}">
+                                <td class="fw-bold text-primary" th:text="${apt.id}">APT-5001</td>
+                                <td th:text="${apt.doctorName}">Dr. Name</td>
+                                <td th:text="${apt.department}">Cardiology</td>
+                                <td>
+                                    <span th:text="${apt.appointmentDate}">2026-11-01</span> at
+                                    <span th:text="${apt.appointmentTime}">10:00</span>
+                                </td>
+                                <td th:text="${apt.reason}">Regular checkup</td>
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${apt.status == 'COMPLETED' ? 'bg-success' : (apt.status == 'CONFIRMED' ? 'bg-primary' : (apt.status == 'CANCELLED' ? 'bg-danger' : 'bg-warning text-dark'))}"
+                                          th:text="${apt.status}">PENDING</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${appointments.empty}" class="text-center py-4 text-muted">
+                    <i class="fas fa-calendar-times fa-3x mb-2 text-secondary opacity-50"></i>
+                    <p>No appointments found for this patient.</p>
+                </div>
+            </div>
+
+            <!-- Medical Records Pane -->
+            <div class="tab-pane fade" id="records-pane">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Clinical Notes & Records</h6>
+                    <a th:href="@{/medical-records/new(patientId=${patient.id})}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add Record
+                    </a>
+                </div>
+                <div class="table-responsive" th:if="${!medicalRecords.empty}">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Record ID</th>
+                                <th>Doctor</th>
+                                <th>Diagnosis</th>
+                                <th>Prescription</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="rec : ${medicalRecords}">
+                                <td class="fw-bold text-primary" th:text="${rec.id}">REC-201</td>
+                                <td th:text="${rec.doctorName}">Dr. Name</td>
+                                <td class="fw-semibold" th:text="${rec.diagnosis}">Hypertension</td>
+                                <td th:text="${rec.prescription}">Amlodipine 5mg</td>
+                                <td th:text="${#temporals.format(rec.recordedAt, 'dd MMM yyyy')}">Date</td>
+                                <td>
+                                    <a th:href="@{/medical-records/view/{id}(id=${rec.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${medicalRecords.empty}" class="text-center py-4 text-muted">
+                    <i class="fas fa-notes-medical fa-3x mb-2 text-secondary opacity-50"></i>
+                    <p>No medical records on file for this patient.</p>
+                </div>
+            </div>
+
+            <!-- Lab Tests Pane -->
+            <div class="tab-pane fade" id="labs-pane">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Laboratory Investigations</h6>
+                    <a th:href="@{/laboratory/new(patientId=${patient.id})}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Order Lab Test
+                    </a>
+                </div>
+                <div class="table-responsive" th:if="${!labTests.empty}">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Lab ID</th>
+                                <th>Test Name</th>
+                                <th>Doctor</th>
+                                <th>Status</th>
+                                <th>Result</th>
+                                <th>Normal Range</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="lab : ${labTests}">
+                                <td class="fw-bold text-primary" th:text="${lab.id}">LAB-401</td>
+                                <td class="fw-semibold" th:text="${lab.testName}">Complete Blood Count</td>
+                                <td th:text="${lab.doctorName}">Dr. Rajesh</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${lab.status == 'COMPLETED' ? 'bg-success' : (lab.status == 'IN_PROGRESS' ? 'bg-info' : 'bg-warning text-dark')}"
+                                          th:text="${lab.status}">COMPLETED</span>
+                                </td>
+                                <td th:text="${lab.result ?: 'Pending'}">14.2 g/dL</td>
+                                <td class="text-muted" th:text="${lab.normalRange ?: '-'}">13.0 - 17.0 g/dL</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${labTests.empty}" class="text-center py-4 text-muted">
+                    <i class="fas fa-vial fa-3x mb-2 text-secondary opacity-50"></i>
+                    <p>No lab tests recorded for this patient.</p>
+                </div>
+            </div>
+
+            <!-- Bills Pane -->
+            <div class="tab-pane fade" id="bills-pane">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">Invoices & Billing History</h6>
+                    <a th:href="@{/billing/new(patientId=${patient.id})}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-file-invoice-dollar me-1"></i> Generate Bill
+                    </a>
+                </div>
+                <div class="table-responsive" th:if="${!bills.empty}">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Total</th>
+                                <th>Paid</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="bill : ${bills}">
+                                <td class="fw-bold text-primary" th:text="${bill.id}">BIL-601</td>
+                                <td class="fw-bold" th:text="'₹' + ${bill.totalAmount}">₹1,200</td>
+                                <td class="text-success" th:text="'₹' + ${bill.paidAmount}">₹1,200</td>
+                                <td class="text-danger" th:text="'₹' + ${bill.getBalance()}">₹0</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${bill.paymentStatus == 'PAID' ? 'bg-success' : (bill.paymentStatus == 'PARTIAL' ? 'bg-warning text-dark' : 'bg-danger')}"
+                                          th:text="${bill.paymentStatus}">PAID</span>
+                                </td>
+                                <td th:text="${bill.paymentMethod}">UPI</td>
+                                <td th:text="${bill.generatedAt != null ? #temporals.format(bill.generatedAt, 'dd MMM yyyy') : '-'}">01 Nov</td>
+                                <td>
+                                    <a th:href="@{/billing/view/{id}(id=${bill.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Invoice
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${bills.empty}" class="text-center py-4 text-muted">
+                    <i class="fas fa-file-invoice fa-3x mb-2 text-secondary opacity-50"></i>
+                    <p>No bills found for this patient.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

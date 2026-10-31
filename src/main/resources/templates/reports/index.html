@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Reports & Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @media print {
+            .sidebar, .topbar, .no-print { display: none !important; }
+            .main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('reports')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header-title"><i class="fas fa-chart-line me-2 text-primary"></i>Hospital Analytics & Executive Reports</h1>
+            <p class="page-header-subtitle">Performance indicators, departmental patient volume, revenue and operational metrics</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-outline-dark">
+                <i class="fas fa-print me-1"></i> Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Executive KPI Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-primary text-white"><i class="fas fa-rupee-sign"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Collected Revenue</span>
+                    <h3 class="stat-value" th:text="|₹${#numbers.formatDecimal(totalRevenue, 1, 'COMMA', 0, 'POINT')}|">₹0</h3>
+                    <span class="stat-sub text-success"><i class="fas fa-check-circle me-1"></i>Settled payments</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-warning text-white"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Pending Receivables</span>
+                    <h3 class="stat-value text-warning" th:text="|₹${#numbers.formatDecimal(pendingRevenue, 1, 'COMMA', 0, 'POINT')}|">₹0</h3>
+                    <span class="stat-sub text-muted">Awaiting settlement</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-info text-white"><i class="fas fa-calendar-check"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Consultations</span>
+                    <h3 class="stat-value" th:text="${stats.get('totalAppointments')}">0</h3>
+                    <span class="stat-sub text-info" th:text="${stats.get('todayAppointments')} + ' booked today'">0 today</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-danger text-white"><i class="fas fa-pills"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Low Stock Medicines</span>
+                    <h3 class="stat-value text-danger" th:text="${lowStockCount}">0</h3>
+                    <span class="stat-sub text-muted" th:text="'Out of ' + ${totalMedicines} + ' drugs'">Total</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row g-4 mb-4">
+        <!-- Department Distribution Bar Chart -->
+        <div class="col-lg-7">
+            <div class="chart-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-hospital-user me-2 text-primary"></i>Consultations by Department</h5>
+                    <span class="badge bg-light text-primary border">Live Volume</span>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appointment Status Doughnut -->
+        <div class="col-lg-5">
+            <div class="chart-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>Appointment Status</h5>
+                    <span class="badge bg-light text-dark border">Breakdown</span>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Breakdown Tables -->
+    <div class="row g-4 mb-4">
+        <!-- Department Breakdown Table -->
+        <div class="col-lg-6">
+            <div class="data-table-container h-100">
+                <div class="data-table-header">
+                    <h5 class="mb-0"><i class="fas fa-clinic-medical me-2 text-primary"></i>Departmental Activity</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Department</th>
+                                <th class="text-end">Patient Encounters</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="entry : ${appointmentsByDept}">
+                                <td>
+                                    <span class="fw-semibold text-dark" th:text="${entry.key}">Cardiology</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-primary rounded-pill px-3 py-1" th:text="${entry.value}">12</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${appointmentsByDept.empty}">
+                                <td colspan="2" class="text-center py-3 text-muted">No appointments recorded yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laboratory Breakdown Table -->
+        <div class="col-lg-6">
+            <div class="data-table-container h-100">
+                <div class="data-table-header">
+                    <h5 class="mb-0"><i class="fas fa-flask me-2 text-primary"></i>Laboratory Diagnostic Pipeline</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Investigation Phase</th>
+                                <th class="text-end">Tests in Pipeline</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="entry : ${labByStatus}">
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${entry.key == 'COMPLETED' ? 'bg-success' : (entry.key == 'IN_PROGRESS' ? 'bg-primary' : 'bg-warning text-dark')}"
+                                          th:text="${entry.key}">COMPLETED</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold fs-6 text-dark" th:text="${entry.value}">5</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${labByStatus.empty}">
+                                <td colspan="2" class="text-center py-3 text-muted">No lab tests logged yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script th:inline="javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    // Dept Chart
+    const deptData = /*[[${appointmentsByDept}]]*/ {};
+    const deptLabels = Object.keys(deptData);
+    const deptValues = Object.values(deptData);
+
+    const ctxDept = document.getElementById('deptChart');
+    if (ctxDept && deptLabels.length > 0) {
+        new Chart(ctxDept, {
+            type: 'bar',
+            data: {
+                labels: deptLabels,
+                datasets: [{
+                    label: 'Appointments',
+                    data: deptValues,
+                    backgroundColor: ['#1a6fa6', '#1eae98', '#f39c12', '#e74c3c', '#9b59b6', '#34495e'],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // Status Chart
+    const statusData = /*[[${appointmentsByStatus}]]*/ {};
+    const statusLabels = Object.keys(statusData);
+    const statusValues = Object.values(statusData);
+
+    const ctxStatus = document.getElementById('statusChart');
+    if (ctxStatus && statusLabels.length > 0) {
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues,
+                    backgroundColor: ['#f39c12', '#1a6fa6', '#2ecc71', '#e74c3c', '#95a5a6'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>

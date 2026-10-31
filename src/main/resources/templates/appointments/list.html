@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Appointments</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('appointments')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title"><i class="fas fa-calendar-check me-2 text-primary"></i>Appointment Management</h1>
+            <p class="page-header-subtitle">Schedule, track, and update patient consultations in real-time</p>
+        </div>
+        <a href="/appointments/new" class="btn btn-primary">
+            <i class="fas fa-calendar-plus me-2"></i> Book Appointment
+        </a>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="mini-stat">
+                <i class="fas fa-calendar-alt text-primary"></i>
+                <div class="mini-val" th:text="${appointments.size()}">0</div>
+                <div class="mini-label">Total Shown</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="mini-stat">
+                <i class="fas fa-clock text-warning"></i>
+                <div class="mini-val" th:text="${appointments.?[status == 'PENDING'].size()}">0</div>
+                <div class="mini-label">Pending Confirmation</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="mini-stat">
+                <i class="fas fa-check-circle text-info"></i>
+                <div class="mini-val" th:text="${appointments.?[status == 'CONFIRMED'].size()}">0</div>
+                <div class="mini-label">Confirmed</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="mini-stat">
+                <i class="fas fa-user-check text-success"></i>
+                <div class="mini-val" th:text="${appointments.?[status == 'COMPLETED'].size()}">0</div>
+                <div class="mini-label">Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Pills Toolbar -->
+    <div class="data-table-container">
+        <div class="data-table-header flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="/appointments" class="btn btn-sm" th:classappend="${filterStatus == null and filterDate == null ? 'btn-primary' : 'btn-outline-secondary'}">All</a>
+                <a href="/appointments?date=today" class="btn btn-sm" th:classappend="${filterDate == 'today' ? 'btn-primary' : 'btn-outline-secondary'}"><i class="fas fa-calendar-day me-1"></i> Today</a>
+                <a href="/appointments?status=PENDING" class="btn btn-sm" th:classappend="${filterStatus == 'PENDING' ? 'btn-warning text-dark' : 'btn-outline-secondary'}">Pending</a>
+                <a href="/appointments?status=CONFIRMED" class="btn btn-sm" th:classappend="${filterStatus == 'CONFIRMED' ? 'btn-info text-dark' : 'btn-outline-secondary'}">Confirmed</a>
+                <a href="/appointments?status=COMPLETED" class="btn btn-sm" th:classappend="${filterStatus == 'COMPLETED' ? 'btn-success' : 'btn-outline-secondary'}">Completed</a>
+                <a href="/appointments?status=CANCELLED" class="btn btn-sm" th:classappend="${filterStatus == 'CANCELLED' ? 'btn-danger' : 'btn-outline-secondary'}">Cancelled</a>
+            </div>
+            <span class="text-muted small" th:text="'Showing ' + ${appointments.size()} + ' appointments'">Count</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient</th>
+                        <th>Doctor</th>
+                        <th>Department</th>
+                        <th>Date & Time</th>
+                        <th>Fee</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="apt : ${appointments}">
+                        <td>
+                            <strong class="text-primary" th:text="${apt.id}">APT-5001</strong>
+                            <div class="small text-muted" th:text="${apt.type}">IN_PERSON</div>
+                        </td>
+                        <td>
+                            <a th:href="@{/patients/view/{id}(id=${apt.patientId})}" class="fw-bold text-dark text-decoration-none" th:text="${apt.patientName}">Patient Name</a>
+                        </td>
+                        <td>
+                            <a th:href="@{/doctors/view/{id}(id=${apt.doctorId})}" class="fw-semibold text-secondary text-decoration-none" th:text="${apt.doctorName}">Dr. Name</a>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-primary border" th:text="${apt.department}">General</span>
+                        </td>
+                        <td>
+                            <div class="fw-semibold" th:text="${apt.appointmentDate}">2026-11-01</div>
+                            <small class="text-muted"><i class="fas fa-clock me-1"></i><span th:text="${apt.appointmentTime}">10:00</span></small>
+                        </td>
+                        <td class="fw-bold text-dark" th:text="'₹' + ${apt.consultationFee}">₹800</td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${apt.status == 'COMPLETED' ? 'bg-success' : (apt.status == 'CONFIRMED' ? 'bg-info text-dark' : (apt.status == 'CANCELLED' ? 'bg-danger' : 'bg-warning text-dark'))}"
+                                  th:text="${apt.status}">PENDING</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1 align-items-center">
+                                <!-- Status Change Dropdown -->
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                        Status
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <form th:action="@{/appointments/status/{id}(id=${apt.id})}" method="post">
+                                                <input type="hidden" name="status" value="CONFIRMED">
+                                                <button type="submit" class="dropdown-item text-primary"><i class="fas fa-check me-2"></i>Mark Confirmed</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form th:action="@{/appointments/status/{id}(id=${apt.id})}" method="post">
+                                                <input type="hidden" name="status" value="COMPLETED">
+                                                <button type="submit" class="dropdown-item text-success"><i class="fas fa-check-double me-2"></i>Mark Completed</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form th:action="@{/appointments/status/{id}(id=${apt.id})}" method="post">
+                                                <input type="hidden" name="status" value="CANCELLED">
+                                                <button type="submit" class="dropdown-item text-danger"><i class="fas fa-times me-2"></i>Mark Cancelled</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <a th:href="@{/appointments/edit/{id}(id=${apt.id})}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <form th:action="@{/appointments/delete/{id}(id=${apt.id})}" method="post" style="display:inline;" onsubmit="return confirm('Cancel and delete this appointment?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${appointments.empty}">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-calendar-times fa-3x mb-3 text-secondary opacity-50"></i>
+                            <p class="mb-0">No appointments found.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

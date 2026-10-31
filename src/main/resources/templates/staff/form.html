@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Staff Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('staff')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-id-badge me-2 text-primary"></i>
+                <span th:text="${staff.id != null ? 'Edit Staff Member' : 'Add Staff Member'}">Staff Form</span>
+            </h1>
+            <p class="page-header-subtitle">Register and manage hospital staff profile, role, and shift assignment</p>
+        </div>
+        <a href="/staff" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to Staff</a>
+    </div>
+
+    <form th:action="@{/staff/save}" th:object="${staff}" method="post">
+        <input type="hidden" th:field="*{id}">
+
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-user-circle"></i> Personal & Contact Info</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">First Name <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{firstName}" class="form-control" placeholder="First Name" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{lastName}" class="form-control" placeholder="Last Name" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Gender <span class="text-danger">*</span></label>
+                    <select th:field="*{gender}" class="form-select" required>
+                        <option value="">-- Select Gender --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" th:field="*{email}" class="form-control" placeholder="staff@hospital.com" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                    <input type="tel" th:field="*{phone}" class="form-control" placeholder="+91 9876543210" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-briefcase"></i> Employment & Assignment</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Role / Designation <span class="text-danger">*</span></label>
+                    <select th:field="*{role}" class="form-select" required>
+                        <option value="">-- Select Role --</option>
+                        <option value="NURSE">Head / Staff Nurse</option>
+                        <option value="RECEPTIONIST">Receptionist / Front Desk</option>
+                        <option value="PHARMACIST">Pharmacist</option>
+                        <option value="LAB_TECHNICIAN">Lab Technician</option>
+                        <option value="TECHNICIAN">Bio-Medical Technician</option>
+                        <option value="ADMIN">Administrative Officer</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Department <span class="text-danger">*</span></label>
+                    <select th:field="*{department}" class="form-select" required>
+                        <option value="">-- Select Department --</option>
+                        <option th:each="dept : ${departments}" th:value="${dept}" th:text="${dept}"></option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Work Shift <span class="text-danger">*</span></label>
+                    <select th:field="*{shift}" class="form-select" required>
+                        <option value="MORNING">Morning (06:00 - 14:00)</option>
+                        <option value="AFTERNOON">Afternoon (14:00 - 22:00)</option>
+                        <option value="NIGHT">Night (22:00 - 06:00)</option>
+                        <option value="GENERAL">General (09:00 - 17:00)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Qualification / Degree</label>
+                    <input type="text" th:field="*{qualification}" class="form-control" placeholder="e.g. B.Sc Nursing / D.Pharm">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Monthly Salary (₹)</label>
+                    <input type="number" step="0.01" th:field="*{salary}" class="form-control" placeholder="e.g. 35000">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Employment Status</label>
+                    <select th:field="*{status}" class="form-select">
+                        <option value="ACTIVE">Active</option>
+                        <option value="ON_LEAVE">On Leave</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Residential Address</label>
+                    <textarea th:field="*{address}" class="form-control" rows="2" placeholder="Full residential address..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a href="/staff" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Save Staff Profile</button>
+        </div>
+    </form>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

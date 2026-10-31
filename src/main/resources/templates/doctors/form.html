@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Doctor Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('doctors')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-user-md me-2 text-primary"></i>
+                <span th:text="${action == 'edit' ? 'Edit Doctor' : 'Add New Doctor'}">Doctor Form</span>
+            </h1>
+            <p class="page-header-subtitle">Fill in the doctor profile and consultation details</p>
+        </div>
+        <a href="/doctors" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
+    </div>
+
+    <form th:action="@{/doctors/save}" th:object="${doctor}" method="post">
+        <input type="hidden" th:field="*{id}">
+
+        <!-- Personal & Contact Information -->
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-user-circle"></i> Personal & Contact Information</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">First Name <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{firstName}" class="form-control" placeholder="Dr. First Name" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{lastName}" class="form-control" placeholder="Last Name" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Gender <span class="text-danger">*</span></label>
+                    <select th:field="*{gender}" class="form-select" required>
+                        <option value="">-- Select Gender --</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" th:field="*{email}" class="form-control" placeholder="doctor@hospital.com" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                    <input type="tel" th:field="*{phone}" class="form-control" placeholder="+91 9876543210" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Professional Information -->
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-briefcase-medical"></i> Professional Information</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Department <span class="text-danger">*</span></label>
+                    <select th:field="*{department}" class="form-select" required>
+                        <option value="">-- Select Department --</option>
+                        <option th:each="dept : ${departments}" th:value="${dept}" th:text="${dept}"></option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Specialization <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{specialization}" class="form-control" placeholder="e.g. Interventional Cardiologist" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Qualification <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{qualification}" class="form-control" placeholder="e.g. MBBS, MD, DM" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Experience</label>
+                    <input type="text" th:field="*{experience}" class="form-control" placeholder="e.g. 10 years">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Consultation Fee (₹) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" th:field="*{consultationFee}" class="form-control" placeholder="e.g. 800" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">License Number</label>
+                    <input type="text" th:field="*{licenseNumber}" class="form-control" placeholder="e.g. MCI-123456">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select th:field="*{status}" class="form-select">
+                        <option value="ACTIVE">Active</option>
+                        <option value="ON_LEAVE">On Leave</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule & Bio -->
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-clock"></i> Availability & Schedule</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Available Days</label>
+                    <input type="text" th:field="*{availableDays}" class="form-control" placeholder="e.g. Mon - Fri, or Mon, Wed, Fri">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Available Time</label>
+                    <input type="text" th:field="*{availableTime}" class="form-control" placeholder="e.g. 09:00 - 17:00">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Doctor Bio & Notes</label>
+                    <textarea th:field="*{bio}" class="form-control" rows="3" placeholder="Brief summary of experience, publications, or clinical focus..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a href="/doctors" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Save Doctor</button>
+        </div>
+    </form>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' | MediCare HMS'">Medical Record Form</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="~{fragments/sidebar :: sidebar('medical-records')}"></div>
+<div class="main-content" id="mainContent">
+<div th:replace="~{fragments/sidebar :: topbar}"></div>
+<div th:replace="~{fragments/sidebar :: alerts}"></div>
+<div class="page-content">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-header-title">
+                <i class="fas fa-file-medical me-2 text-primary"></i>
+                <span th:text="${record.id != null ? 'Edit Medical Record' : 'Create Medical Record'}">Record Form</span>
+            </h1>
+            <p class="page-header-subtitle">Record clinical assessment, diagnosis, prescription, and treatment plan</p>
+        </div>
+        <a href="/medical-records" class="btn btn-secondary"><i class="fas fa-arrow-left me-2"></i>Back to List</a>
+    </div>
+
+    <form th:action="@{/medical-records/save}" th:object="${record}" method="post">
+        <input type="hidden" th:field="*{id}">
+        <input type="hidden" th:field="*{appointmentId}">
+
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-user-md"></i> Patient & Attending Physician</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Patient <span class="text-danger">*</span></label>
+                    <select th:field="*{patientId}" class="form-select" required onchange="updatePatientName(this)">
+                        <option value="">-- Select Patient --</option>
+                        <option th:each="p : ${patients}" 
+                                th:value="${p.id}" 
+                                th:text="${p.fullName + ' (' + p.id + ')'}"
+                                th:attr="data-name=${p.fullName}"></option>
+                    </select>
+                    <input type="hidden" th:field="*{patientName}" id="patientNameInput">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Attending Doctor <span class="text-danger">*</span></label>
+                    <select th:field="*{doctorId}" class="form-select" required onchange="updateDoctorName(this)">
+                        <option value="">-- Select Doctor --</option>
+                        <option th:each="d : ${doctors}" 
+                                th:value="${d.id}" 
+                                th:text="${d.fullName + ' (' + d.specialization + ')'}"
+                                th:attr="data-name=${d.fullName}"></option>
+                    </select>
+                    <input type="hidden" th:field="*{doctorName}" id="doctorNameInput">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-stethoscope"></i> Clinical Assessment & Diagnosis</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Primary Diagnosis <span class="text-danger">*</span></label>
+                    <input type="text" th:field="*{diagnosis}" class="form-control" placeholder="e.g. Type 2 Diabetes Mellitus / Acute Bronchitis" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Follow-up Date</label>
+                    <input type="date" th:field="*{followUpDate}" class="form-control">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Patient Symptoms & Chief Complaints <span class="text-danger">*</span></label>
+                    <textarea th:field="*{symptoms}" class="form-control" rows="2" placeholder="Describe symptoms, duration, intensity..." required></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Clinical Observations & Vital Signs</label>
+                    <textarea th:field="*{observations}" class="form-control" rows="2" placeholder="BP, Heart Rate, SpO2, Temperature, physical examination findings..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="form-section-title"><i class="fas fa-pills"></i> Treatment & Prescriptions</div>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label">Prescription (Medicines, Dosage & Duration)</label>
+                    <textarea th:field="*{prescription}" class="form-control font-monospace" rows="3" placeholder="1. Paracetamol 500mg - 1 tablet three times daily after food for 5 days&#10;2. Amoxicillin 500mg - 1 capsule twice daily for 7 days"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Treatment Plan / Interventions</label>
+                    <textarea th:field="*{treatment}" class="form-control" rows="2" placeholder="Lifestyle modifications, dietary guidance, rest, physiotherapy..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Recommended Lab Tests</label>
+                    <textarea th:field="*{labTests}" class="form-control" rows="2" placeholder="e.g. Complete Blood Count (CBC), Fasting Blood Sugar (FBS), Lipid Profile"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Additional Physician Notes</label>
+                    <textarea th:field="*{notes}" class="form-control" rows="2" placeholder="Private internal clinical notes or follow-up instructions..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a href="/medical-records" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Save Medical Record</button>
+        </div>
+    </form>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+function updatePatientName(select) {
+    const opt = select.selectedOptions[0];
+    if (opt) document.getElementById('patientNameInput').value = opt.getAttribute('data-name') || '';
+}
+function updateDoctorName(select) {
+    const opt = select.selectedOptions[0];
+    if (opt) document.getElementById('doctorNameInput').value = opt.getAttribute('data-name') || '';
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const pSel = document.getElementById('patientId');
+    if (pSel && !document.getElementById('patientNameInput').value) updatePatientName(pSel);
+    const dSel = document.getElementById('doctorId');
+    if (dSel && !document.getElementById('doctorNameInput').value) updateDoctorName(dSel);
+});
+</script>
+</body>
+</html>
